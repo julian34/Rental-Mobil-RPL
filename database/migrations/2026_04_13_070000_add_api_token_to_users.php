@@ -1,22 +1,11 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 
+// This migration is intentionally left empty.
+// Token management is handled by Laravel Sanctum via the personal_access_tokens table.
 return new class extends Migration
 {
-    public function up(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('api_token')->unique()->nullable()->after('remember_token');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('api_token');
-        });
-    }
+    public function up(): void {}
+    public function down(): void {}
 };

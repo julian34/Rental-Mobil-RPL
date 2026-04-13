@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasApiTokens;
 
     /**
      * The attributes that are mass assignable.
@@ -22,8 +22,12 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'username',
+        'alamat',
+        'no_telepon',
+        'no_ktp',
+        'no_sim',
         'password',
-        'api_token',
     ];
 
     /**
@@ -34,7 +38,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'api_token',
     ];
 
     /**
@@ -56,20 +59,6 @@ class User extends Authenticatable
     public function roles(): BelongsToMany
     {
         return $this->belongsToMany(Role::class, 'role_user');
-    }
-
-    /**
-     * Create a new API token for the user.
-     */
-    public function createToken(string $name = 'auth_token'): object
-    {
-        $this->api_token = Str::random(80);
-        $this->save();
-
-        return (object) [
-            'plainTextToken' => $this->api_token,
-            'accessToken' => $this->api_token,
-        ];
     }
 
     /**

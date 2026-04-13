@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use App\Http\Middleware\CheckRole;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -16,6 +17,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'check.role' => CheckRole::class,
         ]);
+
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                abort(401, 'Unauthenticated');
+            }
+            return '/';
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -8,19 +8,17 @@
                 <input
                     v-model="search"
                     type="text"
-                    placeholder="🔍 Search car name or brand..."
+                    placeholder="🔍 Search car model or brand..."
                     class="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 />
                 <select
-                    v-model="filterType"
+                    v-model="filterStatus"
                     class="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white hover:border-gray-300 transition"
                 >
-                    <option value="">All Types</option>
-                    <option>Sedan</option>
-                    <option>SUV</option>
-                    <option>MPV</option>
-                    <option>Hatchback</option>
-                    <option>Pickup</option>
+                    <option value="">All Status</option>
+                    <option>Available</option>
+                    <option>Rented</option>
+                    <option>Maintenance</option>
                 </select>
             </div>
             <button
@@ -44,8 +42,26 @@
             </button>
         </div>
 
+        <!-- Loading state -->
+        <div v-if="fetching" class="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center text-gray-400">
+            <div class="flex flex-col items-center gap-3">
+                <svg class="w-8 h-8 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+                <p class="text-sm font-medium">Loading cars...</p>
+            </div>
+        </div>
+
+        <!-- Error state -->
+        <div v-else-if="fetchError" class="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+            <p class="text-red-600 font-medium text-sm">{{ fetchError }}</p>
+            <button @click="fetchCars" class="mt-3 px-4 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition">Retry</button>
+        </div>
+
         <!-- Table -->
         <div
+            v-else
             class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
         >
             <div class="overflow-x-auto">
@@ -55,9 +71,9 @@
                             class="text-xs text-gray-600 uppercase tracking-wide font-semibold"
                         >
                             <th class="text-left px-5 py-3">Car</th>
-                            <th class="text-left px-5 py-3">Brand / Type</th>
+                            <th class="text-left px-5 py-3">Code</th>
                             <th class="text-left px-5 py-3">Plate</th>
-                            <th class="text-left px-5 py-3">Seats</th>
+                            <th class="text-left px-5 py-3">Year</th>
                             <th class="text-left px-5 py-3">Rate/Day</th>
                             <th class="text-left px-5 py-3">Status</th>
                             <th class="text-center px-5 py-3">Actions</th>
@@ -66,43 +82,46 @@
                     <tbody>
                         <tr
                             v-for="car in filteredCars"
-                            :key="car.id"
+                            :key="car.car_id"
                             class="border-b border-gray-50 hover:bg-blue-50/30 transition-colors"
                         >
                             <td class="px-5 py-3">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 font-bold"
-                                        :style="{ background: car.color }"
+                                        class="w-10 h-10 rounded-lg flex items-center justify-center text-xl shrink-0 font-bold bg-blue-50"
                                     >
                                         🚗
                                     </div>
-                                    <span class="font-medium text-gray-800">{{
-                                        car.name
-                                    }}</span>
+                                    <div>
+                                        <span class="font-medium text-gray-800">{{ car.brand }} {{ car.model }}</span>
+                                        <p v-if="car.color" class="text-xs text-gray-400">{{ car.color }}</p>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="px-5 py-3 text-gray-600">
-                                {{ car.brand }} · {{ car.type }}
+                            <td class="px-5 py-3">
+                                <span
+                                    class="font-mono text-xs bg-blue-50 px-2.5 py-1 rounded border border-blue-200 text-blue-700"
+                                    >{{ car.car_code }}</span
+                                >
                             </td>
                             <td class="px-5 py-3">
                                 <span
                                     class="font-mono text-xs bg-gray-100 px-2.5 py-1 rounded border border-gray-200"
-                                    >{{ car.plate }}</span
+                                    >{{ car.license_plate }}</span
                                 >
                             </td>
                             <td class="px-5 py-3 text-gray-600 font-medium">
-                                {{ car.seats }}
+                                {{ car.year || '-' }}
                             </td>
                             <td class="px-5 py-3 font-semibold text-gray-900">
-                                {{ car.rate }}
+                                Rp {{ Number(car.rental_price_per_day).toLocaleString("id-ID") }}
                             </td>
                             <td class="px-5 py-3">
                                 <span
                                     class="px-2.5 py-1 rounded-full text-xs font-semibold inline-block"
-                                    :class="statusClass(car.status)"
+                                    :class="statusClass(car.car_status)"
                                 >
-                                    {{ car.status }}
+                                    {{ car.car_status }}
                                 </span>
                             </td>
                             <td class="px-5 py-3">
@@ -129,7 +148,7 @@
                                         </svg>
                                     </button>
                                     <button
-                                        @click="deleteCar(car.id)"
+                                        @click="deleteCar(car.car_id)"
                                         class="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
                                         title="Delete car"
                                     >
@@ -188,7 +207,7 @@
                     class="sticky top-0 px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-transparent"
                 >
                     <h3 class="font-bold text-lg text-gray-900">
-                        {{ form.id ? "✏️ Edit Car" : "➕ Add New Car" }}
+                        {{ form.car_id ? "✏️ Edit Car" : "➕ Add New Car" }}
                     </h3>
                     <button
                         @click="modal = false"
@@ -210,16 +229,28 @@
                     </button>
                 </div>
                 <div class="p-6 grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
+                    <div>
                         <label
                             class="text-xs font-bold text-gray-700 uppercase mb-2 block"
-                            >Car Name</label
+                            >Car Code</label
                         >
                         <input
-                            v-model="form.name"
+                            v-model="form.car_code"
                             type="text"
-                            placeholder="e.g. Toyota Avanza"
-                            class="input-field"
+                            placeholder="e.g. CAR-001"
+                            class="input-field font-mono uppercase"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            class="text-xs font-bold text-gray-700 uppercase mb-2 block"
+                            >License Plate</label
+                        >
+                        <input
+                            v-model="form.license_plate"
+                            type="text"
+                            placeholder="e.g. B 1234 ABC"
+                            class="input-field font-mono uppercase"
                         />
                     </div>
                     <div>
@@ -237,56 +268,40 @@
                     <div>
                         <label
                             class="text-xs font-bold text-gray-700 uppercase mb-2 block"
-                            >Type</label
-                        >
-                        <select
-                            v-model="form.type"
-                            class="input-field bg-white"
-                        >
-                            <option>Sedan</option>
-                            <option>SUV</option>
-                            <option>MPV</option>
-                            <option>Hatchback</option>
-                            <option>Pickup</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label
-                            class="text-xs font-bold text-gray-700 uppercase mb-2 block"
-                            >License Plate</label
+                            >Model</label
                         >
                         <input
-                            v-model="form.plate"
+                            v-model="form.model"
                             type="text"
-                            placeholder="e.g. B 1234 ABC"
-                            class="input-field font-mono uppercase"
-                        />
-                    </div>
-                    <div>
-                        <label
-                            class="text-xs font-bold text-gray-700 uppercase mb-2 block"
-                            >Seats</label
-                        >
-                        <input
-                            v-model.number="form.seats"
-                            type="number"
-                            min="2"
-                            max="12"
+                            placeholder="e.g. Avanza"
                             class="input-field"
                         />
                     </div>
                     <div>
                         <label
                             class="text-xs font-bold text-gray-700 uppercase mb-2 block"
-                            >Transmission</label
+                            >Year</label
                         >
-                        <select
-                            v-model="form.transmission"
-                            class="input-field bg-white"
+                        <input
+                            v-model.number="form.year"
+                            type="number"
+                            min="1900"
+                            max="2099"
+                            placeholder="e.g. 2024"
+                            class="input-field"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            class="text-xs font-bold text-gray-700 uppercase mb-2 block"
+                            >Color</label
                         >
-                            <option>Automatic</option>
-                            <option>Manual</option>
-                        </select>
+                        <input
+                            v-model="form.color"
+                            type="text"
+                            placeholder="e.g. White"
+                            class="input-field"
+                        />
                     </div>
                     <div>
                         <label
@@ -294,25 +309,37 @@
                             >Rate / Day (Rp)</label
                         >
                         <input
-                            v-model="form.rateRaw"
+                            v-model="form.rental_price_per_day"
                             type="number"
                             placeholder="350000"
                             class="input-field"
                         />
                     </div>
-                    <div class="col-span-2">
+                    <div>
                         <label
                             class="text-xs font-bold text-gray-700 uppercase mb-2 block"
                             >Status</label
                         >
                         <select
-                            v-model="form.status"
+                            v-model="form.car_status"
                             class="input-field bg-white"
                         >
                             <option>Available</option>
                             <option>Rented</option>
                             <option>Maintenance</option>
                         </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label
+                            class="text-xs font-bold text-gray-700 uppercase mb-2 block"
+                            >Condition Notes</label
+                        >
+                        <textarea
+                            v-model="form.car_condition"
+                            rows="2"
+                            placeholder="e.g. Good condition, minor scratch on rear bumper"
+                            class="input-field"
+                        ></textarea>
                     </div>
                 </div>
                 <div
@@ -328,7 +355,7 @@
                         @click="saveCar"
                         class="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
                     >
-                        {{ form.id ? "💾 Save Changes" : "✅ Add Car" }}
+                        {{ form.car_id ? "💾 Save Changes" : "✅ Add Car" }}
                     </button>
                 </div>
             </div>
@@ -342,103 +369,13 @@ export default {
     data() {
         return {
             search: "",
-            filterType: "",
+            filterStatus: "",
             modal: false,
+            loading: false,
+            fetching: false,
+            fetchError: null,
             form: {},
-            nextId: 10,
-            cars: [
-                {
-                    id: 1,
-                    name: "Toyota Avanza",
-                    brand: "Toyota",
-                    type: "MPV",
-                    plate: "B 1234 ABC",
-                    seats: 7,
-                    transmission: "Automatic",
-                    rate: "Rp 350.000",
-                    rateRaw: 350000,
-                    status: "Available",
-                    color: "#dbeafe",
-                },
-                {
-                    id: 2,
-                    name: "Honda Jazz",
-                    brand: "Honda",
-                    type: "Hatchback",
-                    plate: "D 5678 DEF",
-                    seats: 5,
-                    transmission: "Manual",
-                    rate: "Rp 280.000",
-                    rateRaw: 280000,
-                    status: "Rented",
-                    color: "#dcfce7",
-                },
-                {
-                    id: 3,
-                    name: "Mitsubishi Pajero",
-                    brand: "Mitsubishi",
-                    type: "SUV",
-                    plate: "B 9012 GHI",
-                    seats: 7,
-                    transmission: "Automatic",
-                    rate: "Rp 850.000",
-                    rateRaw: 850000,
-                    status: "Maintenance",
-                    color: "#fef3c7",
-                },
-                {
-                    id: 4,
-                    name: "Toyota Innova",
-                    brand: "Toyota",
-                    type: "MPV",
-                    plate: "F 3456 JKL",
-                    seats: 7,
-                    transmission: "Automatic",
-                    rate: "Rp 550.000",
-                    rateRaw: 550000,
-                    status: "Available",
-                    color: "#ede9fe",
-                },
-                {
-                    id: 5,
-                    name: "Daihatsu Xenia",
-                    brand: "Daihatsu",
-                    type: "MPV",
-                    plate: "B 7890 MNO",
-                    seats: 7,
-                    transmission: "Manual",
-                    rate: "Rp 300.000",
-                    rateRaw: 300000,
-                    status: "Rented",
-                    color: "#fce7f3",
-                },
-                {
-                    id: 6,
-                    name: "Honda Brio",
-                    brand: "Honda",
-                    type: "Hatchback",
-                    plate: "D 2345 PQR",
-                    seats: 5,
-                    transmission: "Automatic",
-                    rate: "Rp 220.000",
-                    rateRaw: 220000,
-                    status: "Available",
-                    color: "#dbeafe",
-                },
-                {
-                    id: 7,
-                    name: "Toyota Fortuner",
-                    brand: "Toyota",
-                    type: "SUV",
-                    plate: "B 6789 STU",
-                    seats: 7,
-                    transmission: "Automatic",
-                    rate: "Rp 950.000",
-                    rateRaw: 950000,
-                    status: "Available",
-                    color: "#dcfce7",
-                },
-            ],
+            cars: [],
         };
     },
     computed: {
@@ -446,15 +383,32 @@ export default {
             return this.cars.filter((c) => {
                 const matchSearch =
                     !this.search ||
-                    c.name.toLowerCase().includes(this.search.toLowerCase()) ||
-                    c.brand.toLowerCase().includes(this.search.toLowerCase());
-                const matchType =
-                    !this.filterType || c.type === this.filterType;
-                return matchSearch && matchType;
+                    c.model.toLowerCase().includes(this.search.toLowerCase()) ||
+                    c.brand.toLowerCase().includes(this.search.toLowerCase()) ||
+                    c.car_code.toLowerCase().includes(this.search.toLowerCase());
+                const matchStatus =
+                    !this.filterStatus || c.car_status === this.filterStatus;
+                return matchSearch && matchStatus;
             });
         },
     },
+    mounted() {
+        this.fetchCars();
+    },
     methods: {
+        async fetchCars() {
+            this.fetching = true;
+            this.fetchError = null;
+            try {
+                const res = await window.axios.get("/api/cars");
+                this.cars = res.data.cars;
+            } catch (e) {
+                console.error("Failed to fetch cars", e);
+                this.fetchError = e.response?.data?.message || "Failed to load cars. Please try again.";
+            } finally {
+                this.fetching = false;
+            }
+        },
         statusClass(status) {
             return (
                 {
@@ -468,33 +422,58 @@ export default {
             this.form = car
                 ? { ...car }
                 : {
-                      id: null,
-                      name: "",
+                      car_id: null,
+                      car_code: "",
+                      license_plate: "",
                       brand: "",
-                      type: "MPV",
-                      plate: "",
-                      seats: 7,
-                      transmission: "Automatic",
-                      rateRaw: 0,
-                      status: "Available",
-                      color: "#dbeafe",
+                      model: "",
+                      year: null,
+                      color: "",
+                      rental_price_per_day: 0,
+                      car_status: "Available",
+                      car_condition: "",
                   };
             this.modal = true;
         },
-        saveCar() {
-            const rate = `Rp ${Number(this.form.rateRaw).toLocaleString("id-ID")}`;
-            if (this.form.id) {
-                const idx = this.cars.findIndex((c) => c.id === this.form.id);
-                if (idx !== -1)
-                    this.cars.splice(idx, 1, { ...this.form, rate });
-            } else {
-                this.cars.push({ ...this.form, id: this.nextId++, rate });
+        async saveCar() {
+            this.loading = true;
+            try {
+                const payload = {
+                    car_code: this.form.car_code,
+                    license_plate: this.form.license_plate,
+                    brand: this.form.brand,
+                    model: this.form.model,
+                    year: this.form.year || null,
+                    color: this.form.color || null,
+                    rental_price_per_day: Number(this.form.rental_price_per_day),
+                    car_status: this.form.car_status,
+                    car_condition: this.form.car_condition || null,
+                };
+
+                if (this.form.car_id) {
+                    await window.axios.put(`/api/cars/${this.form.car_id}`, payload);
+                } else {
+                    await window.axios.post("/api/cars", payload);
+                }
+                this.modal = false;
+                await this.fetchCars();
+            } catch (e) {
+                const msg =
+                    e.response?.data?.message ||
+                    Object.values(e.response?.data?.errors || {}).flat().join("\n") ||
+                    "Failed to save car";
+                alert(msg);
+            } finally {
+                this.loading = false;
             }
-            this.modal = false;
         },
-        deleteCar(id) {
-            if (confirm("Delete this car?")) {
-                this.cars = this.cars.filter((c) => c.id !== id);
+        async deleteCar(id) {
+            if (!confirm("Delete this car?")) return;
+            try {
+                await window.axios.delete(`/api/cars/${id}`);
+                await this.fetchCars();
+            } catch (e) {
+                alert("Failed to delete car");
             }
         },
     },

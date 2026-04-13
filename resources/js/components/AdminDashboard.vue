@@ -293,25 +293,18 @@ export default {
         },
     },
     methods: {
-        handleMenuClick(key) {
-            this.activePage = key;
-            this.sidebarOpen = false;
-        },
         closeSidebar() {
             this.sidebarOpen = false;
         },
     },
     mounted() {
-        // Close sidebar on Escape key
-        const handleEscape = (e) => {
-            if (e.key === "Escape") {
-                this.closeSidebar();
-            }
+        this._handleEscape = (e) => {
+            if (e.key === "Escape") this.closeSidebar();
         };
-        window.addEventListener("keydown", handleEscape);
-        this.$once("hook:beforeUnmount", () => {
-            window.removeEventListener("keydown", handleEscape);
-        });
+        window.addEventListener("keydown", this._handleEscape);
+    },
+    beforeUnmount() {
+        window.removeEventListener("keydown", this._handleEscape);
     },
 };
 </script>

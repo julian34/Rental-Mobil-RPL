@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\CarController;
 
 // Public routes
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -36,4 +37,11 @@ Route::middleware(['auth:sanctum', 'check.role:Administrator'])->group(function 
     // Permission management
     Route::post('/roles/{role}/permissions', [RoleController::class, 'assignPermissionToRole']);
     Route::delete('/roles/{role}/permissions', [RoleController::class, 'removePermissionFromRole']);
+
+    // Car management
+    Route::get('/cars', [CarController::class, 'index']);
+    Route::get('/cars/{car}', [CarController::class, 'show']);
+    Route::post('/cars', [CarController::class, 'store']);
+    Route::put('/cars/{car}', [CarController::class, 'update']);
+    Route::delete('/cars/{car}', [CarController::class, 'destroy']);
 });

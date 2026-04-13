@@ -10,7 +10,7 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
 // Protected routes (require authentication)
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth.token')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     
@@ -21,7 +21,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Admin only routes
-Route::middleware(['auth:sanctum', 'check.role:Administrator'])->group(function () {
+Route::middleware(['auth.token', 'check.role:Administrator'])->group(function () {
     // Role management
     Route::get('/roles', [RoleController::class, 'getAllRoles']);
     Route::get('/roles/{role}', [RoleController::class, 'getRoleById']);

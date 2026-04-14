@@ -298,9 +298,9 @@ export default {
         },
         async fetchPendingBadge() {
             try {
-                const res = await window.axios.get('/api/cashier/stats');
+                const res = await window.axios.get("/api/cashier/stats");
                 const pending = res.data.pending ?? 0;
-                const item = this.menuItems.find(m => m.key === 'rentals');
+                const item = this.menuItems.find((m) => m.key === "rentals");
                 if (item) item.badge = pending > 0 ? pending : null;
             } catch (_) {}
         },

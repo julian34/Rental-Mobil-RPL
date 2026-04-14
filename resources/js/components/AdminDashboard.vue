@@ -235,7 +235,7 @@ export default {
                     label: "Rental Transactions",
                     sub: "Booking records",
                     icon: "📋",
-                    badge: 3,
+                    badge: null,
                 },
                 {
                     key: "payments",
@@ -296,12 +296,21 @@ export default {
         closeSidebar() {
             this.sidebarOpen = false;
         },
+        async fetchPendingBadge() {
+            try {
+                const res = await window.axios.get('/api/cashier/stats');
+                const pending = res.data.pending ?? 0;
+                const item = this.menuItems.find(m => m.key === 'rentals');
+                if (item) item.badge = pending > 0 ? pending : null;
+            } catch (_) {}
+        },
     },
     mounted() {
         this._handleEscape = (e) => {
             if (e.key === "Escape") this.closeSidebar();
         };
         window.addEventListener("keydown", this._handleEscape);
+        this.fetchPendingBadge();
     },
     beforeUnmount() {
         window.removeEventListener("keydown", this._handleEscape);

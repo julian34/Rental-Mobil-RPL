@@ -6,6 +6,9 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\RentalTransactionController;
 use App\Http\Controllers\CashierController;
+use App\Http\Controllers\MaintenanceController;
+use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\ReportController;
 
 // Public routes
 Route::post('/auth/register', [AuthController::class, 'register']);
@@ -46,6 +49,8 @@ Route::middleware(['auth:sanctum', 'check.role:Cashier,Administrator'])->group(f
     Route::patch('/cashier/transactions/{transaction}/handover', [CashierController::class, 'confirmHandover']);
     Route::patch('/cashier/transactions/{transaction}/return', [CashierController::class, 'confirmReturn']);
     Route::patch('/cashier/transactions/{transaction}/cancel', [CashierController::class, 'cancel']);
+    Route::get('/cashier/staff-list', [CashierController::class, 'staffList']);
+    Route::get('/cashier/delivery-tasks', [CashierController::class, 'deliveryTasks']);
 });
 
 // Administrator-only routes
@@ -65,4 +70,26 @@ Route::middleware(['auth:sanctum', 'check.role:Administrator'])->group(function 
     Route::post('/cars', [CarController::class, 'store']);
     Route::put('/cars/{car}', [CarController::class, 'update']);
     Route::delete('/cars/{car}', [CarController::class, 'destroy']);
+
+    // Maintenance management (Admin)
+    Route::get('/maintenance', [MaintenanceController::class, 'index']);
+    Route::post('/maintenance', [MaintenanceController::class, 'store']);
+    Route::patch('/maintenance/{maintenanceRecord}/complete', [MaintenanceController::class, 'complete']);
+    Route::get('/maintenance/staff-list', [MaintenanceController::class, 'staffList']);
+
+    // Delivery task management (Admin)
+    Route::get('/delivery-tasks', [DeliveryController::class, 'index']);
+    Route::post('/delivery-tasks', [DeliveryController::class, 'store']);
+
+    // Reports & Analytics (Admin)
+    Route::get('/reports/revenue', [ReportController::class, 'revenue']);
+    Route::get('/reports/export-csv', [ReportController::class, 'exportCsv']);
+});
+
+// Staff routes
+Route::middleware(['auth:sanctum', 'check.role:Staff,Administrator'])->group(function () {
+    Route::get('/staff/my-tasks', [MaintenanceController::class, 'myTasks']);
+    Route::patch('/staff/maintenance/{maintenanceRecord}/progress', [MaintenanceController::class, 'updateProgress']);
+    Route::get('/staff/my-deliveries', [DeliveryController::class, 'myDeliveries']);
+    Route::patch('/staff/deliveries/{deliveryTask}/status', [DeliveryController::class, 'updateStatus']);
 });

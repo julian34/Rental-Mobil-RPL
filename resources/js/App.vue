@@ -13,6 +13,13 @@
         @logout="handleLogout"
     />
 
+    <!-- Staff view -->
+    <StaffDashboard
+        v-else-if="isStaff"
+        :user="user"
+        @logout="handleLogout"
+    />
+
     <!-- Customer view — shown immediately after login for Customer role -->
     <CustomerDashboard
         v-else-if="isCustomer"
@@ -217,6 +224,7 @@
 <script>
 import AdminDashboard from './components/AdminDashboard.vue';
 import CashierDashboard from './components/CashierDashboard.vue';
+import StaffDashboard from './components/StaffDashboard.vue';
 import CustomerDashboard from './components/CustomerDashboard.vue';
 import Navbar from './components/Navbar.vue';
 import HeroSearch from './components/HeroSearch.vue';
@@ -227,7 +235,7 @@ import RegisterModal from './components/RegisterModal.vue';
 
 export default {
     name: 'App',
-    components: { AdminDashboard, CashierDashboard, CustomerDashboard, Navbar, HeroSearch, PopularDestinations, SiteFooter, LoginModal, RegisterModal },
+    components: { AdminDashboard, CashierDashboard, StaffDashboard, CustomerDashboard, Navbar, HeroSearch, PopularDestinations, SiteFooter, LoginModal, RegisterModal },
     data() {
         return {
             activeModal: null,
@@ -287,6 +295,9 @@ export default {
         },
         isCashier() {
             return this.user?.roles?.some(r => r.name === 'Cashier') ?? false;
+        },
+        isStaff() {
+            return this.user?.roles?.some(r => r.name === 'Staff') ?? false;
         },
         isCustomer() {
             return this.user?.roles?.some(r => r.name === 'Customer') ?? false;

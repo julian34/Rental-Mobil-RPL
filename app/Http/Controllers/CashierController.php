@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\RentalTransaction;
+use App\Models\DeliveryTask;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -86,6 +88,13 @@ class CashierController extends Controller
             ], 422);
         }
 
+        // For delivery orders, validate staff assignment
+        if ($transaction->delivery_method === 'delivery') {
+            $request->validate([
+                'assigned_staff_id' => 'required|exists:users,id',
+            ]);
+        }
+
         $transaction->update([
             'handed_over_at' => now(),
             'status'         => 'active',
@@ -95,13 +104,28 @@ class CashierController extends Controller
         // Car is now officially out of the garage
         $transaction->car->update(['car_status' => 'Rented']);
 
+        // Auto-create delivery task for delivery orders
+        $deliveryTask = null;
+        if ($transaction->delivery_method === 'delivery') {
+            $deliveryTask = DeliveryTask::create([
+                'type'              => 'customer_delivery',
+                'car_id'            => $transaction->car_id,
+                'transaction_id'    => $transaction->transaction_id,
+                'assigned_staff_id' => $request->assigned_staff_id,
+                'destination'       => $transaction->delivery_address ?? 'Alamat pelanggan',
+                'notes'             => 'Antar mobil ke pelanggan: ' . ($transaction->user->name ?? ''),
+                'status'            => 'pending',
+            ]);
+        }
+
         $label = $transaction->delivery_method === 'delivery'
-            ? 'Pengiriman kendaraan berhasil dikonfirmasi. Sewa berjalan.'
+            ? 'Pengiriman kendaraan dikonfirmasi & staff ditugaskan. Sewa berjalan.'
             : 'Pengambilan kendaraan berhasil dikonfirmasi. Sewa berjalan.';
 
         return response()->json([
-            'message'     => $label,
-            'transaction' => $transaction->fresh(['user', 'car', 'cashier']),
+            'message'       => $label,
+            'transaction'   => $transaction->fresh(['user', 'car', 'cashier']),
+            'delivery_task' => $deliveryTask,
         ], 200);
     }
 
@@ -189,6 +213,28 @@ class CashierController extends Controller
             'message'     => 'Transaksi berhasil dibatalkan.',
             'transaction' => $transaction->fresh(['user', 'car']),
         ], 200);
+    }
+
+    /**
+     * Get staff list for assigning delivery tasks.
+     */
+    public function staffList()
+    {
+        $staff = User::whereHas('roles', fn ($q) => $q->where('name', 'Staff'))->get(['id', 'name', 'username']);
+        return response()->json(['staff' => $staff], 200);
+    }
+
+    /**
+     * Get delivery tasks linked to transactions (Cashier view).
+     */
+    public function deliveryTasks(Request $request)
+    {
+        $query = DeliveryTask::with(['car', 'assignedStaff', 'transaction.user'])
+            ->where('type', 'customer_delivery')
+            ->orderByDesc('created_at');
+
+        $tasks = $query->get();
+        return response()->json(['tasks' => $tasks], 200);
     }
 
     /**

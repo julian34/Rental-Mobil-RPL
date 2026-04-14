@@ -339,6 +339,19 @@
                     </div>
                 </div>
 
+                <!-- Staff assignment for delivery orders -->
+                <div v-if="handoverModal.tx?.delivery_method === 'delivery'" class="mb-5">
+                    <label class="block text-xs font-semibold text-gray-600 mb-2">
+                        Tugaskan Staff Pengantar <span class="text-red-500">*</span>
+                    </label>
+                    <select v-model="handoverModal.staffId"
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white">
+                        <option value="">— Pilih Staff —</option>
+                        <option v-for="s in staffList" :key="s.id" :value="s.id">{{ s.name }}</option>
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1.5">Staff yang dipilih akan mendapat tugas pengantaran mobil ke pelanggan.</p>
+                </div>
+
                 <!-- Transaction summary -->
                 <div class="bg-gray-50 rounded-xl divide-y divide-gray-100 mb-5">
                     <div class="flex justify-between px-4 py-2.5 text-sm">
@@ -367,9 +380,15 @@
                 </div>
 
                 <div class="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-5 text-xs text-yellow-700">
-                    ⚠️ Pastikan kondisi kendaraan sudah dicek sebelum diserahkan.
-                    Pembayaran <strong>tidak wajib</strong> dilakukan sekarang — bisa dilunasi saat pengembalian.
-                    Setelah dikonfirmasi, status mobil akan berubah menjadi <strong>Disewa</strong>.
+                    <template v-if="handoverModal.tx?.delivery_method === 'delivery'">
+                        ⚠️ Pastikan kondisi kendaraan sudah dicek. Staff yang ditugaskan akan mengantarkan mobil ke alamat pelanggan.
+                        Setelah dikonfirmasi, status mobil berubah menjadi <strong>Disewa</strong> dan tugas pengantaran otomatis dibuat.
+                    </template>
+                    <template v-else>
+                        ⚠️ Pastikan kondisi kendaraan sudah dicek sebelum diserahkan.
+                        Pembayaran <strong>tidak wajib</strong> dilakukan sekarang — bisa dilunasi saat pengembalian.
+                        Setelah dikonfirmasi, status mobil akan berubah menjadi <strong>Disewa</strong>.
+                    </template>
                 </div>
 
                 <p v-if="handoverModal.error" class="text-red-500 text-sm mb-3">{{ handoverModal.error }}</p>
@@ -379,10 +398,11 @@
                         class="flex-1 py-2.5 rounded-full border border-gray-300 text-gray-600 text-sm font-medium hover:bg-gray-50 transition">
                         Batal
                     </button>
-                    <button @click="submitHandover" :disabled="handoverModal.loading"
+                    <button @click="submitHandover" :disabled="handoverModal.loading || (handoverModal.tx?.delivery_method === 'delivery' && !handoverModal.staffId)"
                         :class="['flex-1 py-2.5 rounded-full text-sm font-semibold transition shadow',
-                            handoverModal.loading ? 'bg-orange-400 text-white cursor-wait' : 'bg-orange-500 hover:bg-orange-600 text-white']">
-                        {{ handoverModal.loading ? 'Memproses...' : (handoverModal.tx?.delivery_method === 'delivery' ? 'Konfirmasi Dikirim' : 'Konfirmasi Diserahkan') }}
+                            handoverModal.loading ? 'bg-orange-400 text-white cursor-wait' : 'bg-orange-500 hover:bg-orange-600 text-white',
+                            (handoverModal.tx?.delivery_method === 'delivery' && !handoverModal.staffId) ? 'opacity-50 cursor-not-allowed' : '']">
+                        {{ handoverModal.loading ? 'Memproses...' : (handoverModal.tx?.delivery_method === 'delivery' ? 'Tugaskan Staff & Kirim' : 'Konfirmasi Diserahkan') }}
                     </button>
                 </div>
             </div>
@@ -679,6 +699,8 @@ export default {
             cancelModal: {
                 open: false, tx: null, error: null, loading: false,
             },
+
+            staffList: [],
         };
     },
 
@@ -714,6 +736,7 @@ export default {
 
     mounted() {
         this.loadAll();
+        this.loadStaff();
     },
 
     methods: {
@@ -730,6 +753,15 @@ export default {
                 this.transactions = [];
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async loadStaff() {
+            try {
+                const res = await window.axios.get('/api/cashier/staff-list');
+                this.staffList = res.data.staff ?? [];
+            } catch (_) {
+                this.staffList = [];
             }
         },
 
@@ -757,14 +789,19 @@ export default {
 
         // ── Handover ──────────────────────────────────────────────
         openHandover(tx) {
-            this.handoverModal = { open: true, tx, error: null, loading: false };
+            this.handoverModal = { open: true, tx, staffId: '', error: null, loading: false };
         },
         async submitHandover() {
             this.handoverModal.error   = null;
             this.handoverModal.loading = true;
             try {
+                const payload = {};
+                if (this.handoverModal.tx.delivery_method === 'delivery') {
+                    payload.assigned_staff_id = this.handoverModal.staffId;
+                }
                 const res = await window.axios.patch(
-                    `/api/cashier/transactions/${this.handoverModal.tx.transaction_id}/handover`
+                    `/api/cashier/transactions/${this.handoverModal.tx.transaction_id}/handover`,
+                    payload
                 );
                 this.replaceTransaction(res.data.transaction);
                 await this.refreshStats();

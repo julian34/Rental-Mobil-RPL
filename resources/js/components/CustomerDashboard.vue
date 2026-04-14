@@ -1,5 +1,5 @@
 <template>
-    <div class="min-h-screen bg-gray-50 font-sans">
+    <div class="min-h-screen bg-gray-50 font-sans" @click="notifOpen = false">
 
         <!-- ── Top Navbar ──────────────────────────────────────────── -->
         <nav class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
@@ -25,6 +25,57 @@
                     <span class="text-sm text-gray-500 hidden lg:block">
                         Halo, <span class="font-semibold text-gray-800">{{ user.name }}</span>
                     </span>
+
+                    <!-- Notification Bell -->
+                    <div class="relative" @click.stop>
+                        <button
+                            @click="notifOpen = !notifOpen"
+                            class="relative p-2 rounded-full hover:bg-gray-100 transition"
+                            title="Notifikasi Sewa"
+                        >
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span v-if="notifCount > 0"
+                                class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                                {{ notifCount > 9 ? '9+' : notifCount }}
+                            </span>
+                        </button>
+
+                        <!-- Dropdown -->
+                        <div
+                            v-if="notifOpen"
+                            class="absolute right-0 top-11 w-72 bg-white rounded-xl shadow-xl border border-gray-100 z-50 overflow-hidden"
+                        >
+                            <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                <p class="text-sm font-bold text-gray-900">Notifikasi Sewa</p>
+                                <button @click="notifOpen = false" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                            </div>
+                            <div v-if="urgentTxs.length === 0" class="px-4 py-6 text-center text-sm text-gray-400">
+                                Tidak ada sewa yang terlambat. ✅
+                            </div>
+                            <div v-else class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                                <div
+                                    v-for="tx in urgentTxs"
+                                    :key="tx.transaction_id"
+                                    class="px-4 py-3 hover:bg-red-50 transition cursor-pointer"
+                                    @click="view = 'history'; notifOpen = false"
+                                >
+                                    <div class="flex items-start gap-3">
+                                        <span class="text-lg mt-0.5 shrink-0">⚠️</span>
+                                        <div>
+                                            <p class="text-sm font-semibold text-red-700">Sewa Terlambat!</p>
+                                            <p class="text-xs text-gray-700 font-medium">{{ tx.car?.brand }} {{ tx.car?.model }}</p>
+                                            <p class="text-xs text-gray-400">{{ tx.invoice_number }}</p>
+                                            <p class="text-xs font-bold text-red-500 mt-0.5">{{ countdownDisplay(tx)?.label }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button
                         @click="$emit('logout')"
                         class="text-sm px-4 py-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition"
@@ -157,11 +208,43 @@
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="text-lg font-bold text-blue-700">Rp {{ formatPrice(tx.total_price) }}</p>
+                                <p class="text-lg font-bold text-blue-700">
+                                    Rp {{ formatPrice(tx.grand_total ?? tx.total_price) }}
+                                </p>
                                 <span :class="txStatusBadge(tx.status)" class="text-xs font-semibold px-2.5 py-1 rounded-full inline-block mt-1">
                                     {{ txStatusLabel(tx.status) }}
                                 </span>
+                                <!-- Live countdown for active rentals -->
+                                <div v-if="countdownDisplay(tx)" class="mt-2">
+                                    <span
+                                        :class="countdownDisplay(tx).overdue
+                                            ? 'bg-red-50 text-red-600 border border-red-200'
+                                            : 'bg-blue-50 text-blue-600 border border-blue-200'"
+                                        class="text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap"
+                                    >
+                                        <svg v-if="countdownDisplay(tx).overdue" class="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <svg v-else class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        {{ countdownDisplay(tx).label }}
+                                    </span>
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- PDF Download -->
+                        <div class="mt-3 pt-3 border-t border-gray-100 flex justify-end">
+                            <button
+                                @click="downloadInvoicePDF(tx)"
+                                class="flex items-center gap-1.5 text-xs font-semibold px-4 py-1.5 rounded-full border border-blue-200 text-blue-700 hover:bg-blue-50 transition"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Unduh Invoice PDF
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -460,6 +543,10 @@ export default {
             transactions: [],
             histLoading: false,
 
+            notifOpen: false,
+            now: new Date(),
+            countdownTimer: null,
+
             // Booking wizard state
             wizard: {
                 open: false,
@@ -503,10 +590,27 @@ export default {
             if (!this.wizard.car) return 0;
             return Math.round(parseFloat(this.wizard.car.rental_price_per_day) * 0.30);
         },
+        urgentTxs() {
+            return this.transactions.filter(tx => {
+                if (tx.status !== 'active') return false;
+                const end = new Date(tx.end_date);
+                end.setHours(23, 59, 59, 999);
+                return end <= this.now;
+            });
+        },
+        notifCount() {
+            return this.urgentTxs.length;
+        },
     },
 
     mounted() {
         this.fetchCars();
+        this.fetchTransactions();
+        this.countdownTimer = setInterval(() => { this.now = new Date(); }, 1000);
+    },
+
+    beforeUnmount() {
+        if (this.countdownTimer) clearInterval(this.countdownTimer);
     },
 
     watch: {
@@ -616,6 +720,117 @@ export default {
             } finally {
                 this.wizard.submitting = false;
             }
+        },
+
+        // ── Countdown ─────────────────────────────────────────────
+        countdownDisplay(tx) {
+            if (tx.status !== 'active') return null;
+            const end = new Date(tx.end_date);
+            end.setHours(23, 59, 59, 999);
+            const diff = end - this.now;
+            if (diff <= 0) {
+                const overdueDays = Math.ceil(Math.abs(diff) / (1000 * 60 * 60 * 24));
+                return { label: `Terlambat ${overdueDays} hari`, overdue: true };
+            }
+            const days  = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const mins  = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const secs  = Math.floor((diff % (1000 * 60)) / 1000);
+            if (days > 0)  return { label: `${days}h ${hours}j tersisa`, overdue: false };
+            if (hours > 0) return { label: `${hours}j ${mins}m tersisa`, overdue: false };
+            return { label: `${mins}m ${secs}d tersisa`, overdue: false };
+        },
+
+        // ── Invoice PDF ────────────────────────────────────────────
+        downloadInvoicePDF(tx) {
+            const win = window.open('', '_blank', 'width=820,height=940');
+            const fmt = v => Number(v).toLocaleString('id-ID');
+            const fmtDate = v => v ? new Date(v).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }) : '-';
+            const grandTotal = tx.grand_total ?? tx.total_price;
+            const statusMap  = { pending: 'Menunggu', active: 'Aktif', completed: 'Selesai', cancelled: 'Dibatalkan' };
+            const lateRow = tx.late_charge && Number(tx.late_charge) > 0
+                ? `<tr><td style="padding:8px 12px;color:#b45309;">Denda Keterlambatan (${tx.late_days} hari)</td><td style="padding:8px 12px;text-align:right;color:#b45309;">Rp ${fmt(tx.late_charge)}</td></tr>` : '';
+
+            win.document.write(`<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Invoice ${tx.invoice_number}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;color:#111;background:#fff;padding:40px}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px}
+.brand{font-size:22px;font-weight:800;color:#1d4ed8}
+.brand-sub{font-size:11px;color:#6b7280;margin-top:2px}
+.inv-title h2{font-size:28px;font-weight:800;color:#1d4ed8;text-align:right}
+.inv-no{font-size:13px;color:#374151;text-align:right;margin-top:4px;letter-spacing:1px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px}
+.sec{font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.info-block p{font-size:13px;color:#374151;margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin-bottom:0}
+thead{background:#1d4ed8}
+thead th{color:#fff;padding:10px 12px;text-align:left;font-size:12px}
+tbody tr:nth-child(even){background:#f9fafb}
+tbody td{padding:8px 12px;font-size:13px;border-bottom:1px solid #e5e7eb}
+.total-row td{font-weight:700;font-size:14px;background:#eff6ff;color:#1d4ed8;border-top:2px solid #1d4ed8}
+.badge{display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:700}
+.s-pending{background:#fef3c7;color:#92400e}
+.s-active{background:#dbeafe;color:#1e40af}
+.s-completed{background:#d1fae5;color:#065f46}
+.s-cancelled{background:#fee2e2;color:#991b1b}
+.footer{margin-top:40px;border-top:1px solid #e5e7eb;padding-top:16px;font-size:11px;color:#9ca3af;text-align:center}
+@media print{body{padding:20px}button{display:none}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="brand">RC RentCar</div>
+    <div class="brand-sub">Solusi Transportasi Terpercaya</div>
+  </div>
+  <div class="inv-title">
+    <h2>INVOICE</h2>
+    <div class="inv-no">${tx.invoice_number}</div>
+    <div style="margin-top:6px;text-align:right"><span class="badge s-${tx.status}">${statusMap[tx.status] ?? tx.status}</span></div>
+  </div>
+</div>
+<div class="info-grid">
+  <div class="info-block">
+    <p class="sec">Pelanggan</p>
+    <p><strong>${tx.user?.name ?? '-'}</strong></p>
+    <p>${tx.user?.username ?? ''}</p>
+  </div>
+  <div class="info-block">
+    <p class="sec">Tanggal Invoice</p>
+    <p><strong>${fmtDate(tx.created_at)}</strong></p>
+  </div>
+</div>
+<p class="sec" style="margin-bottom:10px">Rincian Sewa</p>
+<table>
+  <thead><tr><th>Keterangan</th><th style="text-align:right">Jumlah</th></tr></thead>
+  <tbody>
+    <tr><td>Kendaraan</td><td style="text-align:right">${tx.car?.brand ?? ''} ${tx.car?.model ?? ''} — ${tx.car?.license_plate ?? '-'}</td></tr>
+    <tr><td>Periode Sewa</td><td style="text-align:right">${fmtDate(tx.start_date)} – ${fmtDate(tx.end_date)}</td></tr>
+    <tr><td>Durasi</td><td style="text-align:right">${tx.duration_days} hari</td></tr>
+    <tr><td>Harga per Hari</td><td style="text-align:right">Rp ${fmt(tx.rental_price_per_day)}</td></tr>
+    <tr><td>Metode Pengambilan</td><td style="text-align:right">${tx.delivery_method === 'delivery' ? 'Antar ke Lokasi' : 'Ambil Sendiri'}${tx.delivery_address ? ' — ' + tx.delivery_address : ''}</td></tr>
+    <tr><td>Subtotal</td><td style="text-align:right">Rp ${fmt(tx.total_price)}</td></tr>
+    ${lateRow}
+    <tr class="total-row"><td>TOTAL</td><td style="text-align:right">Rp ${fmt(grandTotal)}</td></tr>
+  </tbody>
+</table>
+<div style="margin-top:20px;padding:12px;background:#fefce8;border:1px solid #fde047;border-radius:8px;font-size:12px;color:#713f12">
+  <strong>Kebijakan Keterlambatan:</strong> Denda Rp ${fmt(tx.late_penalty_per_day)}/hari (30% dari harga harian) untuk setiap hari keterlambatan pengembalian.
+</div>
+<div style="text-align:center;margin-top:24px">
+  <button onclick="window.print();setTimeout(()=>window.close(),500);" style="padding:10px 28px;background:#1d4ed8;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer">Cetak / Simpan sebagai PDF</button>
+</div>
+<div class="footer">
+  <p>Terima kasih telah mempercayai layanan RC RentCar. Dokumen ini digenerate secara otomatis.</p>
+</div>
+</body></html>`);
+            win.document.close();
+            win.focus();
         },
 
         // ── Formatting helpers ─────────────────────────────────────

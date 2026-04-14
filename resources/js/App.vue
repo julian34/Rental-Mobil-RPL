@@ -6,6 +6,20 @@
         @logout="handleLogout"
     />
 
+    <!-- Cashier view -->
+    <CashierDashboard
+        v-else-if="isCashier"
+        :user="user"
+        @logout="handleLogout"
+    />
+
+    <!-- Customer view — shown immediately after login for Customer role -->
+    <CustomerDashboard
+        v-else-if="isCustomer"
+        :user="user"
+        @logout="handleLogout"
+    />
+
     <!-- Public website view -->
     <div v-else class="min-h-screen flex flex-col bg-white font-sans">
 
@@ -202,6 +216,8 @@
 
 <script>
 import AdminDashboard from './components/AdminDashboard.vue';
+import CashierDashboard from './components/CashierDashboard.vue';
+import CustomerDashboard from './components/CustomerDashboard.vue';
 import Navbar from './components/Navbar.vue';
 import HeroSearch from './components/HeroSearch.vue';
 import PopularDestinations from './components/PopularDestinations.vue';
@@ -211,7 +227,7 @@ import RegisterModal from './components/RegisterModal.vue';
 
 export default {
     name: 'App',
-    components: { AdminDashboard, Navbar, HeroSearch, PopularDestinations, SiteFooter, LoginModal, RegisterModal },
+    components: { AdminDashboard, CashierDashboard, CustomerDashboard, Navbar, HeroSearch, PopularDestinations, SiteFooter, LoginModal, RegisterModal },
     data() {
         return {
             activeModal: null,
@@ -268,6 +284,12 @@ export default {
     computed: {
         isAdmin() {
             return this.user?.roles?.some(r => r.name === 'Administrator') ?? false;
+        },
+        isCashier() {
+            return this.user?.roles?.some(r => r.name === 'Cashier') ?? false;
+        },
+        isCustomer() {
+            return this.user?.roles?.some(r => r.name === 'Customer') ?? false;
         },
     },
     mounted() {

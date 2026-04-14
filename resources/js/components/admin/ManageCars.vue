@@ -234,12 +234,27 @@
                             class="text-xs font-bold text-gray-700 uppercase mb-2 block"
                             >Car Code</label
                         >
-                        <input
-                            v-model="form.car_code"
-                            type="text"
-                            placeholder="e.g. CAR-001"
-                            class="input-field font-mono uppercase"
-                        />
+                        <div class="flex gap-1.5">
+                            <input
+                                v-model="form.car_code"
+                                type="text"
+                                placeholder="e.g. CAR-001"
+                                class="input-field font-mono uppercase"
+                                :readonly="!!form.car_id"
+                            />
+                            <button
+                                v-if="!form.car_id"
+                                @click="form.car_code = generateCarCode()"
+                                type="button"
+                                title="Generate new code"
+                                class="shrink-0 px-2.5 py-2 bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label
@@ -418,12 +433,24 @@ export default {
                 }[status] || "bg-gray-100 text-gray-600"
             );
         },
+        generateCarCode() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            const existingCodes = new Set(this.cars.map((c) => c.car_code));
+            let code;
+            do {
+                const rand = Array.from({ length: 5 }, () =>
+                    chars[Math.floor(Math.random() * chars.length)]
+                ).join("");
+                code = `CAR-${rand}`;
+            } while (existingCodes.has(code));
+            return code;
+        },
         openModal(car = null) {
             this.form = car
                 ? { ...car }
                 : {
                       car_id: null,
-                      car_code: "",
+                      car_code: this.generateCarCode(),
                       license_plate: "",
                       brand: "",
                       model: "",

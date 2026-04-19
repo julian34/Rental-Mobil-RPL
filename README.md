@@ -114,6 +114,8 @@ Melihat laporan usaha dan memantau keseluruhan operasional rental.
 
 Diagram berikut menggambarkan interaksi antara aktor dan sistem rental mobil. File sumber diagram: [`UseCaseDiagram.drawio`](../UseCaseDiagram.drawio)
 
+![Use Case Diagram](../UCD.drawio.png)
+
 ### Aktor dan Use Case
 
 #### Customer

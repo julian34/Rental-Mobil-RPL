@@ -482,10 +482,11 @@
                             <span class="text-red-500">*</span></label
                         >
                         <input
-                            v-model.number="wizardForm.repair_cost"
-                            type="number"
-                            min="0"
-                            placeholder="500000"
+                            :value="wizardForm.repair_cost"
+                            @input="onRepairCostInput"
+                            type="text"
+                            inputmode="numeric"
+                            placeholder="500.000"
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                         />
                         <p
@@ -545,7 +546,7 @@
                             </p>
                             <p class="text-gray-500">Biaya</p>
                             <p class="text-gray-800 font-semibold">
-                                Rp {{ formatPrice(wizardForm.repair_cost) }}
+                                Rp {{ formatPrice(repairCostRaw) }}
                             </p>
                             <p class="text-gray-500">Staff</p>
                             <p class="text-gray-800">{{ selectedStaffName }}</p>
@@ -649,13 +650,16 @@ export default {
             wizardForm: {
                 description: "",
                 workshop_name: "",
-                repair_cost: null,
+                repair_cost: "",
                 assigned_staff_id: null,
             },
             wizardErrors: {},
         };
     },
     computed: {
+        repairCostRaw() {
+            return Number(String(this.wizardForm.repair_cost).replace(/\D/g, '')) || 0;
+        },
         nonRentedCars() {
             return this.cars.filter((c) => c.car_status !== "Rented");
         },
@@ -755,7 +759,7 @@ export default {
             this.wizardForm = {
                 description: "",
                 workshop_name: "",
-                repair_cost: null,
+                repair_cost: "",
                 assigned_staff_id: null,
             };
             this.wizardErrors = {};
@@ -777,8 +781,8 @@ export default {
                     return;
                 }
                 if (
-                    !this.wizardForm.repair_cost ||
-                    this.wizardForm.repair_cost <= 0
+                    !this.repairCostRaw ||
+                    this.repairCostRaw <= 0
                 ) {
                     this.wizardErrors.repair_cost =
                         "Biaya perbaikan harus lebih dari 0.";
@@ -793,7 +797,7 @@ export default {
                 await window.axios.post("/api/maintenance", {
                     car_id: this.wizardCar.car_id,
                     description: this.wizardForm.description,
-                    repair_cost: this.wizardForm.repair_cost,
+                    repair_cost: this.repairCostRaw,
                     workshop_name: this.wizardForm.workshop_name,
                     assigned_staff_id: this.wizardForm.assigned_staff_id,
                 });
@@ -831,6 +835,11 @@ export default {
             } finally {
                 this.completing = null;
             }
+        },
+        onRepairCostInput(e) {
+            const raw = e.target.value.replace(/\D/g, '');
+            this.wizardForm.repair_cost = raw ? Number(raw).toLocaleString('id-ID') : '';
+            this.$nextTick(() => { e.target.value = this.wizardForm.repair_cost; });
         },
         formatPrice(val) {
             if (!val) return "0";

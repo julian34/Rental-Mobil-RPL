@@ -110,6 +110,70 @@ Melakukan pemesanan atau penyewaan mobil sesuai kebutuhan.
 
 Melihat laporan usaha dan memantau keseluruhan operasional rental.
 
+## Use Case Diagram
+
+Diagram berikut menggambarkan interaksi antara aktor dan sistem rental mobil. File sumber diagram: [`UseCaseDiagram.drawio`](../UseCaseDiagram.drawio)
+
+### Aktor dan Use Case
+
+#### Customer
+
+| No | Use Case | Keterangan |
+|----|----------|------------|
+| 1 | Lihat Daftar Mobil | Melihat daftar mobil yang tersedia untuk disewa |
+| 2 | Penyewahan Mobil | Melakukan proses penyewaan mobil |
+| 3 | Lihat Riwayat Transaksi | Melihat riwayat transaksi penyewaan yang pernah dilakukan |
+
+#### Kasir
+
+| No | Use Case | Keterangan |
+|----|----------|------------|
+| 1 | Proses Pembayaran | Memproses pembayaran dari transaksi rental |
+| 2 | Konfirmasi Serah Terima Mobil | Mengkonfirmasi penyerahan mobil kepada pelanggan |
+| 3 | Konfirmasi Pengembalian Mobil | Mengkonfirmasi pengembalian mobil dari pelanggan |
+| 4 | Hitung Keterlambatan & Denda | Menghitung denda jika terjadi keterlambatan pengembalian |
+| 5 | Lihat Daftar Transaksi | Melihat seluruh daftar transaksi rental |
+| 6 | Penugasan Pengantaran | Menugaskan pengantaran mobil ke pelanggan |
+
+#### Administrator
+
+| No | Use Case | Keterangan |
+|----|----------|------------|
+| 1 | Kelola Data Mobil | Menambah, mengubah, dan menghapus data mobil |
+| 2 | Kelola User | Mengelola data pengguna sistem |
+| 3 | Kelola Perawatan Mobil | Mengelola jadwal dan catatan perawatan mobil |
+| 4 | Lihat Laporan Pendapatan | Melihat laporan pendapatan dari transaksi rental |
+| 5 | Lihat Daftar Transaksi | Melihat seluruh daftar transaksi rental |
+
+#### Staff
+
+| No | Use Case | Keterangan |
+|----|----------|------------|
+| 1 | Lihat Tugas Perawatan | Melihat daftar tugas perawatan mobil yang ditugaskan |
+| 2 | Lihat Tugas Pengantaran | Melihat daftar tugas pengantaran mobil ke pelanggan |
+
+### Relasi Antar Use Case
+
+#### Include
+
+| Dari | Ke | Penjelasan |
+|------|----|------------|
+| Lihat Daftar Transaksi | Lihat Laporan Pendapatan | Melihat daftar transaksi mencakup data untuk laporan pendapatan |
+| Konfirmasi Pengembalian Mobil | Proses Pembayaran | Pengembalian mobil selalu melibatkan proses pembayaran |
+| Proses Pembayaran | Lihat Daftar Transaksi | Pembayaran selalu tercatat ke dalam daftar transaksi |
+| Lihat Tugas Perawatan | Kelola Perawatan Mobil | Tugas perawatan mengacu pada data kelola perawatan mobil |
+| Lihat Riwayat Transaksi | Lihat Daftar Transaksi | Riwayat transaksi customer mengacu pada daftar transaksi |
+| Penugasan Pengantaran | Lihat Tugas Pengantaran | Penugasan pengantaran tercatat sebagai tugas pengantaran |
+| Lihat Daftar Mobil | Kelola Perawatan Mobil | Data daftar mobil mencakup informasi status perawatan |
+
+#### Extend
+
+| Dari | Ke | Penjelasan |
+|------|----|------------|
+| Hitung Keterlambatan & Denda | Konfirmasi Pengembalian Mobil | Perhitungan denda dilakukan hanya jika ada keterlambatan |
+| Penyewahan Mobil | Proses Pembayaran | Penyewaan dapat memicu proses pembayaran |
+| Konfirmasi Serah Terima Mobil | Penugasan Pengantaran | Serah terima dapat memicu penugasan pengantaran jika diperlukan |
+
 ## Main Workflow
 
 Alur utama sistem secara umum adalah sebagai berikut:
